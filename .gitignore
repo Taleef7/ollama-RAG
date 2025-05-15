@@ -6,6 +6,7 @@ __pycache__/
 venv/
 .env
 chroma_db_ollama/
+chroma_db_gemini/
 *.egg-info/
 *.db
 *.sqlite

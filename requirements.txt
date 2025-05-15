@@ -6,3 +6,5 @@ langchain_chroma
 chromadb
 numpy
 tiktoken
+google-generativeai
+python-dotenv
