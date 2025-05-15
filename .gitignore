@@ -5,7 +5,8 @@ __pycache__/
 .DS_Store
 venv/
 .env
-chroma_db/
+chroma_db_ollama/
+*.egg-info/
 *.db
 *.sqlite
 *.sqlite3

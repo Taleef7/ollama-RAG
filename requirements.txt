@@ -1,0 +1,8 @@
+ollama
+langchain
+langchain-community
+langchain_ollama
+langchain_chroma
+chromadb
+numpy
+tiktoken
