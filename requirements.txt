@@ -8,3 +8,5 @@ numpy
 tiktoken
 google-generativeai
 python-dotenv
+pysqlite3-binary
+accelerate
