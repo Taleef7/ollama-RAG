@@ -14,7 +14,8 @@ chroma_db_ollama/
 chroma_db_gemini/
 chroma_db_stella/
 chroma_db_stella_hf_llm/ 
-chroma_db_gemini_v2/ 
+chroma_db_gemini_v2/
+chroma_db_linq_mistral/ 
 
 # Output and Log files
 *.out
@@ -39,6 +40,7 @@ Thumbs.db
 # Personal backups
 *_backup.py
 *.bak
+run_rag_py_before_linq_embed.py
 
 *.egg-info/
 *.db

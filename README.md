@@ -1,72 +1,88 @@
-# ollama-RAG Project
+# Advanced RAG System on Purdue Gilbreth Cluster
 
-This project is an exploration into building a Retrieval Augmented Generation (RAG) system using locally run Large Language Models (LLMs) via Ollama, and experimenting with different embedding models. The goal is to create a pipeline that can answer questions based on a provided set of documents.
+This project implements a Retrieval Augmented Generation (RAG) pipeline designed to run on Purdue's Gilbreth RCAC cluster, leveraging powerful Hugging Face models for embeddings and language generation, with a Streamlit user interface.
 
-This project is part of an internship focused on "Attention Tensor-Based Text Indexing and Searching."
+**Last Updated:** May 21, 2025
 
-## Current Progress (as of May 15, 2025 - Gemini Embedding Attempt)
+## Core Architecture
+* **Embedding Model:** `Linq-AI-Research/Linq-Embed-Mistral` (loaded via `sentence-transformers`) for generating high-quality embeddings for documents and queries.
+* **Language Model (LLM):** `google/gemma-3-12b-it` (12B parameters, instruction-tuned) loaded directly via the Hugging Face `transformers` library with `attn_implementation="eager"` for robust GPU execution.
+* **Vector Store:** ChromaDB for storing and retrieving document embeddings, using cosine similarity.
+* **Chunking:** `RecursiveCharacterTextSplitter` with `CHUNK_SIZE=2048` and `CHUNK_OVERLAP=200` to align with the capabilities of `Linq-Embed-Mistral`.
+* **User Interface:** Streamlit application (`app_ui.py`) for interactive querying.
+* **Execution Environment:** Purdue Gilbreth RCAC Cluster, utilizing Slurm for job scheduling and GPUs (e.g., NVIDIA A100) for model acceleration.
 
-* **Local LLM Setup:** Continued use of Ollama for local LLM execution. Upgraded and tested with `gemma3:4b-it-qat` as the generative model.
-* **Embedding Model Experimentation - Google Gemini Embeddings:**
-    * Successfully set up the `google-generativeai` Python SDK and configured API key access.
-    * Developed a custom LangChain `Embeddings` wrapper (`GeminiLangChainEmbeddings`) to integrate Google's experimental `gemini-embedding-exp-03-07` model.
-        * This wrapper implements specific `task_type` parameters for document retrieval (`RETRIEVAL_DOCUMENT`) and query embedding (`RETRIEVAL_QUERY`).
-        * Implemented batching and delay logic within the wrapper to manage API calls.
-    * **Testing with Gemini Embeddings:**
-        * Successfully embedded a small number of chunks (e.g., 1-3 chunks from short documents) without hitting rate limits, demonstrating functional API integration.
-        * Encountered `429 Resource has been exhausted (e.g. check quota)` errors when attempting to embed a larger number of chunks (e.g., ~750 chunks from 4 documents, including longer texts) even with aggressive batching (e.g., 10 texts per batch) and significant delays (e.g., 15-25s initial, 13-20s subsequent). This indicates very strict rate limits for the experimental `gemini-embedding-exp-03-07` model on the Free Tier.
-        * The RAG pipeline (using Gemini embeddings for retrieval and `gemma3:4b-it-qat` for generation) was functional for the successfully embedded small dataset, showing promising retrieval relevance.
-* **Previous State (mxbai-embed-large via Ollama):**
-    * Successfully implemented a full RAG pipeline using `mxbai-embed-large` for embeddings (served via Ollama) and `gemma3:1b-it-qat` (and later `gemma3:4b-it-qat`) for generation.
-    * Utilized ChromaDB with cosine similarity for persistent vector storage.
-    * Addressed `mxbai-embed-large` specific query prefix requirements.
-    * Corrected LangChain deprecation warnings for `OllamaEmbeddings` and `Chroma`.
-    * Observed improved answer quality with `gemma3:4b-it-qat` for some questions (e.g., "bacteria killed Martians") but also some regressions or persistent "I don't know" responses, highlighting the ongoing importance of retrieval quality.
+## Key Features & Progress
+* Successful setup and execution on Gilbreth compute nodes.
+* Integration of large, state-of-the-art embedding (Linq-Embed-Mistral) and LLM (Gemma 3 12B-IT) models.
+* Dynamic retrieval of `top_n` context chunks (currently tested up to `n=15`).
+* Resolution of HPC-specific challenges:
+    * SQLite version compatibility for ChromaDB (using `pysqlite3-binary`).
+    * Hugging Face gated model access and token authentication.
+    * Installation of `accelerate` for large model support (`device_map="auto"`).
+    * Home directory disk quota management by redirecting caches (`HF_HOME`, etc.) to scratch space.
+    * PyTorch attention mechanism alignment errors (`attn_implementation="eager"`).
+* Streamlit UI for user interaction.
+* Knowledge base includes: `waroftheworlds.txt`, `dantes_inferno.txt`, `a_tale_of_two_cities.txt`, and shorter documents `doc1.txt` (Eiffel Tower), `doc2.txt` (Photosynthesis), `doc3.txt` (Python).
 
-## Technologies Used (Reflecting Gemini Attempt)
+## How to Run (on Gilbreth)
 
-* **Python 3.x**
-* **Ollama:** For running local LLMs (`gemma3:4b-it-qat`).
-* **`ollama` Python library:** For direct LLM chat interaction.
-* **Google Generative AI SDK (`google-generativeai`):** For using Gemini Embedding API.
-* **Python DotEnv (`python-dotenv`):** For managing API keys.
-* **LangChain (`langchain`, `langchain_community`, `langchain_ollama`, `langchain_chroma`):**
-    * `DirectoryLoader` and `TextLoader`.
-    * `RecursiveCharacterTextSplitter`.
-    * Custom `GeminiLangChainEmbeddings` wrapper.
-    * `Chroma` vector store.
-* **ChromaDB:** As the local vector database.
-* **NumPy**.
-* **TikToken**.
-
-## Next Steps
-
-1.  **Revert to Local Embedding Model:** Due to persistent rate limit issues with the experimental Gemini Embedding API's Free Tier, the immediate next step is to revert to a fully local embedding model (e.g., `mxbai-embed-large` via Ollama or experimenting with other Hugging Face models like `NovaSearch/stella_en_400M_v5` via `sentence-transformers`).
-2.  **Continue RAG Pipeline Refinement:**
-    * Further experiment with `chunk_size`, `chunk_overlap`, and `top_n` for the chosen local embedding model.
-    * Focus on improving retrieval for questions that are still challenging.
-3.  **Develop a User Interface:** Create a UI using Streamlit.
-4.  **Evaluation & MIMIC-III Preparation.**
-
-## Setup and Running (Reflecting Gemini Attempt - Note on Rate Limits)
-
-1.  Ensure Ollama is installed and running (for the LLM).
-2.  (For Gemini Embedding Attempt) Ensure Google Cloud Project is set up, "Generative Language API" is enabled, and `GEMINI_API_KEY` is in a `.env` file. **Note: Experimental Gemini embedding model has very strict Free Tier rate limits.**
-3.  Pull the required Ollama LLM:
+1.  **Clone the Repository:**
     ```bash
-    ollama pull gemma3:4b-it-qat
+    git clone <your_repo_url>
+    cd <your_repo_name>
     ```
-4.  Clone this repository.
-5.  Create a Python virtual environment and install dependencies from `requirements.txt`.
+2.  **Set up Python Virtual Environment:**
     ```bash
+    python3 -m venv venv
+    source venv/bin/activate
     pip install -r requirements.txt
     ```
-6.  Create a `data/` directory and add source `.txt` documents.
-7.  Run the RAG script:
+3.  **Configure Hugging Face Authentication:**
+    * Ensure you have access to gated models like `google/gemma-3-12b-it` on the Hugging Face website.
+    * Log in using the CLI (ideally within an `sinteractive` session before first model download):
+        ```bash
+        huggingface-cli login
+        ```
+    * Ensure `HF_HOME` environment variable is set in your `~/.bashrc` to point to your scratch space for caching models, e.g.:
+        ```bash
+        export HF_HOME="/scratch/gilbreth/your_username/huggingface_cache"
+        ```
+        And create this directory. Source `~/.bashrc` or re-login.
+
+4.  **Prepare Data:**
+    * Place your `.txt` document files into the `data/` subdirectory.
+
+5.  **Run the Streamlit UI (Interactive via `sinteractive`):**
+    * Request an interactive session with a powerful GPU (e.g., A100 with >=40GB VRAM):
+        ```bash
+        sinteractive --account=<your_account> --nodes=1 --ntasks-per-node=1 --cpus-per-task=8 --mem=128G --time=02:00:00 --gres=gpu:1 --constraint="A100-80GB" 
+        # Adjust account, constraint, mem, time as needed
+        ```
+    * Once on the compute node:
+        ```bash
+        cd /path/to/your/project/ollama-RAG 
+        source venv/bin/activate
+        streamlit run app_ui.py --server.port <your_chosen_port, e.g., 8501>
+        ```
+    * Set up SSH port forwarding from your local machine to access the Streamlit app in your browser (e.g., `ssh -L <local_port>:<compute_node_hostname>:<remote_port> your_username@gilbreth.rcac.purdue.edu`).
+    * Alternatively, use the "Compute Node Desktop" app via Open OnDemand to run Streamlit and a browser within the VNC session.
+
+6.  **Run CLI Version (for debugging/batch, also via `sinteractive` or `sbatch`):**
     ```bash
-    python run_rag.py
+    # Within an sinteractive session with resources:
+    python run_rag.py 
     ```
-    If using Gemini embeddings for the first time, building the ChromaDB will be slow and may hit rate limits for large datasets. For local Ollama embeddings, it will depend on local machine performance.
+    For `sbatch`, you'll need a submission script (see `test_gpu.slurm` for an example structure) and potentially modify `run_rag.py` to not expect interactive input.
+
+## Current Challenges / Next Steps
+* Investigating and improving retrieval precision for queries targeting specific smaller documents within the larger mixed corpus (e.g., `doc3.txt` for Python-related questions).
+* Exploring advanced RAG techniques like re-ranking if necessary.
+* Systematic evaluation of RAG performance.
+* Potential exploration of alternative optimized attention mechanisms (e.g., "sdpa", "flash_attention_2") for the LLM if "eager" proves too slow for extensive use.
+
+## Dependencies
+Key dependencies are listed in `requirements.txt`. Ensure `pysqlite3-binary` and `accelerate` are included.
 
 ## Credit and AI tools used
 This project makes use of the help of Gemini 2.5 for code generation, debugging, and documentation. The initial idea and structure were inspired by the LangChain documentation and examples, but the implementation is original and tailored to the specific requirements of this project.
